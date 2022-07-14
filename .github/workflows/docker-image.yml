@@ -1,0 +1,42 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker image build -t lib201901/nodejs-workstation:release .
+    - name: Login to registry
+      run: docker login -u lib201901 -p liben1998
+    - name: Push Image
+      run: docker push lib201901/nodejs-workstation:release
+      
+      
+  pull-docker:
+    needs: [build]
+    name: Pull Docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: 23.105.222.59
+          username: root
+          password: XukHTk6WWWNK
+          port: 29064
+          script: |
+            docker container rm -f nodejs-workstation
+            docker image rm -f lib201901/nodejs-workstation:release
+            docker login -u lib201901 -p liben1998
+            docker pull lib201901/nodejs-workstation:release
+            docker container run -d -p 80:80 --name="nodejs-workstation" --restart=always lib201901/nodejs-workstation:release
